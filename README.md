@@ -7,6 +7,8 @@ Une application graphique permettant de combiner plusieurs sorties audio sous Li
 
 ![Screenshot](https://github.com/yourusername/audio-combinator/raw/main/screenshots/main.png)
 
+![alt text](image.png)
+
 ## Fonctionnalités
 
 - Interface graphique intuitive en GTK
