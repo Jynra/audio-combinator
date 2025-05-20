@@ -5,8 +5,6 @@
 
 Une application graphique permettant de combiner plusieurs sorties audio sous Linux. Idéale pour diffuser le son simultanément sur plusieurs périphériques audio, comme par exemple deux casques.
 
-![Screenshot](https://github.com/yourusername/audio-combinator/raw/main/screenshots/main.png)
-
 ![Screenshot](examples/image.png)
 
 ## Fonctionnalités
