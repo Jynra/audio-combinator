@@ -7,7 +7,7 @@ Une application graphique permettant de combiner plusieurs sorties audio sous Li
 
 ![Screenshot](https://github.com/yourusername/audio-combinator/raw/main/screenshots/main.png)
 
-![alt text](image.png)
+![Screenshot](examples/image.png)
 
 ## Fonctionnalités
 
@@ -138,12 +138,3 @@ Les contributions sont les bienvenues ! N'hésitez pas à :
 - Proposer des fonctionnalités
 - Soumettre des pull requests
 
-## Licence
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
-## Crédits
-
-Développé par [Votre Nom]
-
-Merci à tous les contributeurs et à la communauté PulseAudio pour leur excellent travail.
