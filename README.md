@@ -5,7 +5,7 @@
 
 Une application graphique avancée permettant de combiner plusieurs sorties audio sous Linux avec contrôle de volume individuel. Idéale pour diffuser le son simultanément sur plusieurs périphériques audio avec un contrôle précis de chaque sortie.
 
-![Screenshot](examples/image.png)
+![Screenshot](examples/thumbnails.png)
 
 ## Fonctionnalités
 
