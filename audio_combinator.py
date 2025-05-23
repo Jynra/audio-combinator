@@ -4,6 +4,7 @@
 Audio Combiner GUI - Application pour combiner plusieurs sorties audio
 Compatible avec PulseAudio et PipeWire
 Support pour 2+ périphériques de sortie avec contrôle de volume individuel
+Avec préréglages sauvegardables (profils audio)
 """
 
 import gi
@@ -16,6 +17,8 @@ import re
 import sys
 import signal
 import os
+import json
+from datetime import datetime
 
 class AudioCombiner:
     def __init__(self):
@@ -30,6 +33,12 @@ class AudioCombiner:
         self.mute_buttons = []   # Liste pour stocker tous les boutons de sourdine
         self.volume_labels = []  # Liste pour stocker tous les labels de volume
         self.device_sink_inputs = []  # Liste pour stocker les IDs des sink-inputs
+        
+        # Configuration des préréglages
+        self.config_dir = os.path.expanduser("~/.config/audio-combinator")
+        self.presets_file = os.path.join(self.config_dir, "presets.json")
+        self.presets = {}
+        self.load_presets()
 
         # Configurer le gestionnaire de signaux pour un arrêt propre
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -38,7 +47,7 @@ class AudioCombiner:
         # Créer la fenêtre principale
         self.window = Gtk.Window(title="Audio Combinator Pro")
         self.window.set_border_width(10)
-        self.window.set_default_size(700, 600)
+        self.window.set_default_size(700, 700)
         self.window.connect("destroy", self.on_window_destroy)
         
         # Ajouter un peu de style (CSS)
@@ -67,6 +76,9 @@ class AudioCombiner:
         title_label.get_style_context().add_class("title")
         self.main_grid.attach(title_label, 0, self.current_row, 3, 1)
         self.current_row += 1
+        
+        # Section des préréglages
+        self.create_presets_section()
         
         # Section pour les périphériques
         devices_frame = Gtk.Frame(label="Périphériques de sortie")
@@ -194,6 +206,339 @@ class AudioCombiner:
         # Mettre à jour l'état des boutons
         self.update_device_buttons_state()
     
+    def create_presets_section(self):
+        """Crée la section de gestion des préréglages"""
+        presets_frame = Gtk.Frame(label="Préréglages (Profils Audio)")
+        presets_frame.set_hexpand(True)
+        self.main_grid.attach(presets_frame, 0, self.current_row, 3, 1)
+        self.current_row += 1
+        
+        presets_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        presets_box.set_margin_left(10)
+        presets_box.set_margin_right(10)
+        presets_box.set_margin_top(10)
+        presets_box.set_margin_bottom(10)
+        presets_frame.add(presets_box)
+        
+        # Première ligne : Charger un préréglage
+        load_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        presets_box.pack_start(load_row, False, False, 0)
+        
+        load_label = Gtk.Label(label="Charger préréglage:")
+        load_label.set_size_request(120, -1)
+        load_row.pack_start(load_label, False, False, 0)
+        
+        # ComboBox pour les préréglages
+        self.presets_combo = Gtk.ComboBox()
+        self.presets_store = Gtk.ListStore(str, str)  # nom, description
+        self.presets_combo.set_model(self.presets_store)
+        renderer_text = Gtk.CellRendererText()
+        self.presets_combo.pack_start(renderer_text, True)
+        self.presets_combo.add_attribute(renderer_text, "text", 1)
+        self.presets_combo.set_hexpand(True)
+        load_row.pack_start(self.presets_combo, True, True, 0)
+        
+        load_button = Gtk.Button(label="Charger")
+        load_button.connect("clicked", self.on_load_preset_clicked)
+        load_row.pack_start(load_button, False, False, 0)
+        
+        delete_button = Gtk.Button(label="Supprimer")
+        delete_button.connect("clicked", self.on_delete_preset_clicked)
+        delete_button.get_style_context().add_class("destructive-action")
+        load_row.pack_start(delete_button, False, False, 0)
+        
+        # Deuxième ligne : Sauvegarder un préréglage
+        save_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        presets_box.pack_start(save_row, False, False, 0)
+        
+        save_label = Gtk.Label(label="Nom du préréglage:")
+        save_label.set_size_request(120, -1)
+        save_row.pack_start(save_label, False, False, 0)
+        
+        self.preset_name_entry = Gtk.Entry()
+        self.preset_name_entry.set_placeholder_text("Ex: Gaming Pro, Bureau Collaboratif...")
+        self.preset_name_entry.set_hexpand(True)
+        save_row.pack_start(self.preset_name_entry, True, True, 0)
+        
+        save_button = Gtk.Button(label="Sauvegarder")
+        save_button.connect("clicked", self.on_save_preset_clicked)
+        save_button.get_style_context().add_class("suggested-action")
+        save_row.pack_start(save_button, False, False, 0)
+        
+        # Mise à jour de la liste des préréglages
+        self.update_presets_combo()
+    
+    def load_presets(self):
+        """Charge les préréglages depuis le fichier"""
+        try:
+            # Créer le répertoire de configuration s'il n'existe pas
+            os.makedirs(self.config_dir, exist_ok=True)
+            
+            if os.path.exists(self.presets_file):
+                with open(self.presets_file, 'r', encoding='utf-8') as f:
+                    self.presets = json.load(f)
+            else:
+                # Créer quelques préréglages par défaut
+                self.presets = {
+                    "Gaming Pro": {
+                        "description": "Casque principal + Haut-parleurs + Casque streaming",
+                        "devices": [
+                            {"name": "", "volume": 70, "muted": False},
+                            {"name": "", "volume": 30, "muted": False},
+                            {"name": "", "volume": 45, "muted": False}
+                        ],
+                        "main_volume": 65,
+                        "set_as_default": True,
+                        "created": datetime.now().isoformat()
+                    },
+                    "Bureau Collaboratif": {
+                        "description": "Deux casques + Haut-parleurs en sourdine",
+                        "devices": [
+                            {"name": "", "volume": 60, "muted": False},
+                            {"name": "", "volume": 55, "muted": False},
+                            {"name": "", "volume": 40, "muted": True}
+                        ],
+                        "main_volume": 50,
+                        "set_as_default": False,
+                        "created": datetime.now().isoformat()
+                    },
+                    "Home Studio": {
+                        "description": "Monitors + Casque contrôle + Sortie enregistrement",
+                        "devices": [
+                            {"name": "", "volume": 65, "muted": False},
+                            {"name": "", "volume": 50, "muted": False},
+                            {"name": "", "volume": 80, "muted": False}
+                        ],
+                        "main_volume": 70,
+                        "set_as_default": True,
+                        "created": datetime.now().isoformat()
+                    }
+                }
+                self.save_presets()
+        except Exception as e:
+            self.presets = {}
+            print(f"Erreur lors du chargement des préréglages: {e}")
+    
+    def save_presets(self):
+        """Sauvegarde les préréglages dans le fichier"""
+        try:
+            with open(self.presets_file, 'w', encoding='utf-8') as f:
+                json.dump(self.presets, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde des préréglages: {e}")
+    
+    def update_presets_combo(self):
+        """Met à jour la liste des préréglages dans la ComboBox"""
+        self.presets_store.clear()
+        for name, preset in self.presets.items():
+            description = f"{name} - {preset.get('description', 'Aucune description')}"
+            self.presets_store.append([name, description])
+    
+    def get_current_configuration(self):
+        """Récupère la configuration actuelle"""
+        selected_devices = self.get_selected_devices()
+        
+        config = {
+            "description": "",
+            "devices": [],
+            "main_volume": int(self.main_volume_scale.get_value()),
+            "set_as_default": self.default_check.get_active(),
+            "created": datetime.now().isoformat()
+        }
+        
+        # Sauvegarder la configuration de chaque périphérique
+        for i, device in enumerate(selected_devices):
+            if i < len(self.volume_scales):
+                device_config = {
+                    "name": device['name'],
+                    "volume": int(self.volume_scales[i].get_value()),
+                    "muted": self.mute_buttons[i].get_label() == "🔇"
+                }
+                config["devices"].append(device_config)
+        
+        return config
+    
+    def apply_configuration(self, config):
+        """Applique une configuration"""
+        try:
+            # Ajuster le nombre de périphériques si nécessaire
+            devices_needed = len(config["devices"])
+            current_devices = len(self.device_combos)
+            
+            # Ajouter des périphériques si nécessaire
+            while current_devices < devices_needed and current_devices < 8:
+                self.add_device_row()
+                current_devices += 1
+            
+            # Retirer des périphériques si nécessaire
+            while current_devices > devices_needed and current_devices > 2:
+                self.remove_device_row()
+                current_devices -= 1
+            
+            # Appliquer les paramètres généraux
+            self.main_volume_scale.set_value(config.get("main_volume", 50))
+            self.default_check.set_active(config.get("set_as_default", True))
+            
+            # Appliquer les paramètres des périphériques
+            for i, device_config in enumerate(config["devices"]):
+                if i < len(self.volume_scales):
+                    # Régler le volume
+                    volume = device_config.get("volume", 50)
+                    self.volume_scales[i].set_value(volume)
+                    self.volume_labels[i].set_text(f"{volume}%")
+                    
+                    # Régler l'état de sourdine
+                    muted = device_config.get("muted", False)
+                    self.mute_buttons[i].set_label("🔇" if muted else "🔊")
+                    
+                    # Essayer de sélectionner le périphérique correspondant
+                    device_name = device_config.get("name", "")
+                    if device_name:
+                        self.select_device_by_name(i, device_name)
+            
+            # Appliquer les volumes immédiatement
+            self.apply_current_volumes()
+            
+            return True
+        except Exception as e:
+            self.append_status(f"Erreur lors de l'application de la configuration: {e}", "error")
+            return False
+    
+    def select_device_by_name(self, combo_index, device_name):
+        """Sélectionne un périphérique par son nom dans une ComboBox"""
+        if combo_index < len(self.device_combos):
+            combo = self.device_combos[combo_index]
+            model = combo.get_model()
+            if model:
+                for i, row in enumerate(model):
+                    if row[2] == device_name:  # Nom technique
+                        combo.set_active(i)
+                        return True
+        return False
+    
+    def apply_current_volumes(self):
+        """Applique les volumes actuels aux périphériques"""
+        selected_devices = self.get_selected_devices()
+        for i, device in enumerate(selected_devices):
+            if i < len(self.volume_scales):
+                volume = int(self.volume_scales[i].get_value())
+                muted = self.mute_buttons[i].get_label() == "🔇"
+                
+                self.set_sink_volume(device['name'], volume)
+                self.set_sink_mute(device['name'], muted)
+    
+    def on_save_preset_clicked(self, button):
+        """Gestionnaire pour sauvegarder un préréglage"""
+        name = self.preset_name_entry.get_text().strip()
+        if not name:
+            self.append_status("Veuillez entrer un nom pour le préréglage.", "error")
+            return
+        
+        # Vérifier si au moins 2 périphériques sont sélectionnés
+        selected_devices = self.get_selected_devices()
+        if len(selected_devices) < 2:
+            self.append_status("Veuillez sélectionner au moins 2 périphériques avant de sauvegarder.", "error")
+            return
+        
+        # Demander une description
+        description = self.get_preset_description()
+        
+        # Créer la configuration
+        config = self.get_current_configuration()
+        config["description"] = description
+        
+        # Sauvegarder
+        self.presets[name] = config
+        self.save_presets()
+        self.update_presets_combo()
+        
+        # Vider le champ de nom
+        self.preset_name_entry.set_text("")
+        
+        self.append_status(f"Préréglage '{name}' sauvegardé avec succès!", "success")
+        self.append_status(f"Configuration: {len(selected_devices)} périphériques, volume général {config['main_volume']}%", "info")
+    
+    def get_preset_description(self):
+        """Demande une description pour le préréglage"""
+        dialog = Gtk.Dialog(title="Description du préréglage", 
+                           parent=self.window,
+                           flags=Gtk.DialogFlags.MODAL)
+        dialog.add_button("Annuler", Gtk.ResponseType.CANCEL)
+        dialog.add_button("OK", Gtk.ResponseType.OK)
+        dialog.set_default_response(Gtk.ResponseType.OK)
+        
+        content_area = dialog.get_content_area()
+        content_area.set_spacing(10)
+        content_area.set_margin_left(10)
+        content_area.set_margin_right(10)
+        content_area.set_margin_top(10)
+        content_area.set_margin_bottom(10)
+        
+        label = Gtk.Label(label="Entrez une description courte pour ce préréglage:")
+        content_area.pack_start(label, False, False, 0)
+        
+        entry = Gtk.Entry()
+        entry.set_placeholder_text("Ex: Configuration pour gaming avec 3 sorties")
+        entry.set_activates_default(True)
+        content_area.pack_start(entry, False, False, 0)
+        
+        dialog.show_all()
+        response = dialog.run()
+        
+        description = entry.get_text().strip() if response == Gtk.ResponseType.OK else ""
+        dialog.destroy()
+        
+        return description
+    
+    def on_load_preset_clicked(self, button):
+        """Gestionnaire pour charger un préréglage"""
+        preset_iter = self.presets_combo.get_active_iter()
+        if not preset_iter:
+            self.append_status("Veuillez sélectionner un préréglage à charger.", "error")
+            return
+        
+        preset_name = self.presets_store[preset_iter][0]
+        if preset_name not in self.presets:
+            self.append_status(f"Préréglage '{preset_name}' non trouvé.", "error")
+            return
+        
+        config = self.presets[preset_name]
+        if self.apply_configuration(config):
+            self.append_status(f"Préréglage '{preset_name}' chargé avec succès!", "success")
+            self.append_status(f"Description: {config.get('description', 'Aucune description')}", "info")
+            self.append_status(f"Configuration: {len(config['devices'])} périphériques", "info")
+        else:
+            self.append_status(f"Erreur lors du chargement du préréglage '{preset_name}'.", "error")
+    
+    def on_delete_preset_clicked(self, button):
+        """Gestionnaire pour supprimer un préréglage"""
+        preset_iter = self.presets_combo.get_active_iter()
+        if not preset_iter:
+            self.append_status("Veuillez sélectionner un préréglage à supprimer.", "error")
+            return
+        
+        preset_name = self.presets_store[preset_iter][0]
+        
+        # Demander confirmation
+        dialog = Gtk.MessageDialog(parent=self.window,
+                                 flags=Gtk.DialogFlags.MODAL,
+                                 type=Gtk.MessageType.QUESTION,
+                                 buttons=Gtk.ButtonsType.YES_NO,
+                                 message_format=f"Supprimer le préréglage '{preset_name}' ?")
+        dialog.format_secondary_text("Cette action est irréversible.")
+        
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == Gtk.ResponseType.YES:
+            if preset_name in self.presets:
+                del self.presets[preset_name]
+                self.save_presets()
+                self.update_presets_combo()
+                self.append_status(f"Préréglage '{preset_name}' supprimé.", "success")
+            else:
+                self.append_status(f"Préréglage '{preset_name}' non trouvé.", "error")
+    
     def add_device_row(self):
         """Ajoute une nouvelle ligne de sélection de périphérique avec contrôles de volume"""
         device_number = len(self.device_combos) + 1
@@ -300,8 +645,8 @@ class AudioCombiner:
     def update_device_buttons_state(self):
         """Met à jour l'état des boutons d'ajout/suppression de périphériques"""
         # Limite à 8 périphériques maximum pour des raisons pratiques
-        self.add_device_button.set_sensitive(len(self.device_combos) < 8)
-        self.remove_device_button.set_sensitive(len(self.device_combos) > 2)
+        self.add_device_button.set_sensitive(len(self.device_combos) < 8 and not self.combined_sink_active)
+        self.remove_device_button.set_sensitive(len(self.device_combos) > 2 and not self.combined_sink_active)
     
     def setup_css(self):
         """Configure le CSS pour l'interface"""
@@ -692,6 +1037,10 @@ class AudioCombiner:
             self.remove_device_button.set_sensitive(False)
             self.default_check.set_sensitive(False)
             
+            # Désactiver les contrôles de préréglages pendant la combinaison
+            self.presets_combo.set_sensitive(False)
+            self.preset_name_entry.set_sensitive(False)
+            
             # Activer le contrôle de volume principal seulement quand la combinaison est active
             self.main_volume_scale.set_sensitive(True)
             self.main_mute_button.set_sensitive(True)
@@ -708,6 +1057,10 @@ class AudioCombiner:
             self.stop_button.set_sensitive(False)
             self.refresh_button.set_sensitive(True)
             self.default_check.set_sensitive(True)
+            
+            # Réactiver les contrôles de préréglages
+            self.presets_combo.set_sensitive(True)
+            self.preset_name_entry.set_sensitive(True)
             
             # Désactiver seulement le contrôle de volume principal
             self.main_volume_scale.set_sensitive(False)

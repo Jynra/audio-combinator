@@ -215,7 +215,7 @@ Remplacez `/chemin/complet/vers/audio_combinator.py` par le chemin réel vers le
 - ✅ **Prise en charge multi-périphériques** (2-8 périphériques)
 - ✅ **Contrôle de volume individuel pour chaque périphérique**  
 - ✅ **Pré-configuration des volumes avant démarrage**
-- 🔄 Préréglages sauvegardables (profils audio)
+- ✅ Préréglages sauvegardables (profils audio)
 - 🔄 Mode serveur pour une utilisation à distance
 - 🔄 Interface améliorée avec visualisation audio en temps réel
 - 🔄 Support pour les groupes de périphériques prédéfinis
