@@ -62,8 +62,8 @@ class AudioCombiner:
         self.main_grid = Gtk.Grid()
         self.main_grid.set_column_spacing(10)
         self.main_grid.set_row_spacing(10)
-        self.main_grid.set_margin_left(10)
-        self.main_grid.set_margin_right(10)
+        self.main_grid.set_margin_start(10)
+        self.main_grid.set_margin_end(10)
         self.main_grid.set_margin_top(10)
         self.main_grid.set_margin_bottom(10)
         self.main_scrolled.add(self.main_grid)
@@ -88,8 +88,8 @@ class AudioCombiner:
         
         # Conteneur pour les périphériques avec défilement
         self.devices_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        self.devices_box.set_margin_left(10)
-        self.devices_box.set_margin_right(10)
+        self.devices_box.set_margin_start(10)
+        self.devices_box.set_margin_end(10)
         self.devices_box.set_margin_top(10)
         self.devices_box.set_margin_bottom(10)
         devices_frame.add(self.devices_box)
@@ -118,8 +118,8 @@ class AudioCombiner:
         self.current_row += 1
         
         volume_main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        volume_main_box.set_margin_left(10)
-        volume_main_box.set_margin_right(10)
+        volume_main_box.set_margin_start(10)
+        volume_main_box.set_margin_end(10)
         volume_main_box.set_margin_top(10)
         volume_main_box.set_margin_bottom(10)
         volume_frame.add(volume_main_box)
@@ -214,8 +214,8 @@ class AudioCombiner:
         self.current_row += 1
         
         presets_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        presets_box.set_margin_left(10)
-        presets_box.set_margin_right(10)
+        presets_box.set_margin_start(10)
+        presets_box.set_margin_end(10)
         presets_box.set_margin_top(10)
         presets_box.set_margin_bottom(10)
         presets_frame.add(presets_box)
@@ -469,8 +469,8 @@ class AudioCombiner:
         
         content_area = dialog.get_content_area()
         content_area.set_spacing(10)
-        content_area.set_margin_left(10)
-        content_area.set_margin_right(10)
+        content_area.set_margin_start(10)
+        content_area.set_margin_end(10)
         content_area.set_margin_top(10)
         content_area.set_margin_bottom(10)
         
@@ -571,7 +571,7 @@ class AudioCombiner:
         # Deuxième ligne : contrôles de volume
         volume_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         volume_row.set_hexpand(True)
-        volume_row.set_margin_left(20)  # Indenter légèrement
+        volume_row.set_margin_start(20)  # Indenter légèrement
         
         # Label volume
         volume_label_text = Gtk.Label(label="Volume:")
